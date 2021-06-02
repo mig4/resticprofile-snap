@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# This wrapper resets $HOME env var to real user home so that resticprofile
+# can resolve user-specified paths starting with `~` correctly.
+
+export HOME="${SNAP_REAL_HOME}"
+
+exec "$@"

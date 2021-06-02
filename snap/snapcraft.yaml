@@ -1,15 +1,75 @@
-name: my-snap-name # you probably want to 'snapcraft register <name>'
-version: '0.1' # just for humans, typically '1.2+git' or '1.3.2'
-summary: Single-line elevator pitch for your amazing snap # 79 char long summary
+name: resticprofile
+version: '0.14.0'
+summary: Configuration profiles manager for restic backup
 description: |
-  This is my-snap's description. You have a paragraph or two to tell the
-  most important story about your snap. Keep it under 100 words though,
-  we live in tweetspace and your description wants to look good in the snap
-  store.
+  Configuration profiles for <a href="https://restic.net/">restic backup</a>.
 
-confinement: devmode # use 'strict' once you have the right plugs and slots
+  With resticprofile:
+
+  * You no longer need to remember command parameters and environment variables
+  * You can create multiple profiles inside one configuration file
+  * A profile can inherit all the options from another profile
+  * You can run the forget command before or after a backup (in a section called *retention*)
+  * You can check a repository before or after a backup
+  * You can create groups of profiles that will run sequentially
+  * You can run shell commands before or after running a profile: useful if you need to mount and unmount your backup disk for example
+  * You can run a shell command if an error occurred (at any time)
+  * You can send a backup stream via _stdin_
+  * You can start restic at a lower or higher priority (Priority Class in Windows, *nice* in all unixes) and/or _ionice_ (only available on Linux)
+  * It can check that you have enough memory before starting a backup. (I've had some backups that literally killed a server with swap disabled)
+  * You can generate cryptographically secure random keys to use as a restic key file
+  * You can easily schedule backups, retentions and checks (works for *systemd*, *crond*, *launchd* and *windows task scheduler*)
+  * You can generate a simple status file to send to some monitoring software and make sure your backups are running fine
+  * You can use a template syntax in your configuration file
+  * You can generate scheduled tasks using *crond*
+  * Get backup statistics in your status file
+  * Automatically clear up [stale locks](#locks)
+
+  The configuration file accepts various formats:
+  * [TOML](https://github.com/toml-lang/toml) : configuration file with extension _.toml_ and _.conf_ to keep compatibility with versions before 0.6.0
+  * [JSON](https://en.wikipedia.org/wiki/JSON) : configuration file with extension _.json_
+  * [YAML](https://en.wikipedia.org/wiki/YAML) : configuration file with extension _.yaml_
+  * [HCL](https://github.com/hashicorp/hcl): configuration file with extension _.hcl_
+
+  restic: https://restic.net/
+  resticprofile: https://github.com/creativeprojects/resticprofile
+  snap source: https://github.com/mig4/resticprofile-snap
+
+base: core20
+grade: devel
+confinement: classic
+
+apps:
+  resticprofile:
+    command: bin/resticprofile
+    command-chain:
+      - bin/req-env-wrapper
+  restic:
+    command: bin/restic
 
 parts:
-  my-part:
+  req-env-wrapper:
+    plugin: dump
+    source: snap/local/
+
+  resticprofile:
     # See 'snapcraft plugins'
+    plugin: go
+    source: https://github.com/mig4/resticprofile.git
+    build-packages:
+      - gcc
+
+  # source: https://github.com/bashfulrobot/snapcrafters-restic/blob/main/snap/snapcraft.yaml
+  restic:
+    # Use the nil plugin with wget until bz2 is supported by snapcraft.
     plugin: nil
+    build-packages:
+      - bzip2
+      - wget
+    override-pull: |
+      wget https://github.com/restic/restic/releases/download/v0.12.0/restic_0.12.0_linux_amd64.bz2
+      bunzip2 restic_0.12.0_linux_amd64.bz2
+    override-build: |
+      snapcraftctl build
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin
+      install restic_0.12.0_linux_amd64 $SNAPCRAFT_PART_INSTALL/bin/restic
