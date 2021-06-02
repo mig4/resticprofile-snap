@@ -1,0 +1,20 @@
+---
+config-test:
+  repository: "local:/srv/restic/restic-test"
+  password-file: repo.config-test.key
+  backup:
+    source:
+      - ~/.bashrc
+      - ~/.profile
+    schedule: "daily"
+    schedule-permission: "user"
+    schedule-lock-wait: "30m"
+  forget:
+    prune: true
+
+secrets-test:
+  repository: "local:/srv/restic/restic-test-secrets"
+  password-file: repo.secrets-test.key
+  backup:
+    source:
+      - ~/.ssh
